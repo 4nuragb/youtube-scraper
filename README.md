@@ -150,8 +150,3 @@ project-root/
 3. Run client in second terminal
 4. Ensure both are running simultaneously
 
-## Contact
-[Your Name/Team Contact Information]
-
-## License
-[Specify Your Project's License]
