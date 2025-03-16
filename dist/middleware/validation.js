@@ -61,5 +61,29 @@ exports.advancedSearchValidation = [
     (0, express_validator_1.query)('limit')
         .optional()
         .isInt({ min: 1, max: 100 }).withMessage('limit must be between 1 and 100'),
+    (0, express_validator_1.query)('sort')
+        .optional()
+        .custom((value) => {
+        if (value) {
+            const sortFields = value.split(',').map(field => field.trim());
+            const validFields = ['publishedAt', 'title', 'description', 'channelTitle', 'channelId', 'viewCount', 'likeCount'];
+            if (sortFields.some(field => !validFields.includes(field))) {
+                throw new Error('Sort fields must be one of: publishedAt, title, description, channelTitle, channelId, viewCount, likeCount');
+            }
+            return true;
+        }
+        return true;
+    }),
+    (0, express_validator_1.query)('order')
+        .optional()
+        .custom((value) => {
+        if (value) {
+            const orders = value.split(',').map(order => order.trim());
+            if (orders.some((order) => !['asc', 'desc'].includes(order))) {
+                throw new Error('Sort order value must be either "asc" or "desc"');
+            }
+        }
+        return true;
+    }),
     exports.validateRequest
 ];

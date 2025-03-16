@@ -13,7 +13,7 @@ const advancedSearch = async (req, res) => {
         const page = parseInt(query.page || '1');
         const limit = parseInt(query.limit || '10');
         const skip = (page - 1) * limit;
-        const { search, partial, tags, channelId, startDate, endDate } = query;
+        const { search, partial, tags, channelId, startDate, endDate, sort, order } = query;
         logger.info(`Advanced Search with params: ${JSON.stringify(query)}`);
         let mongoQuery = {};
         // Handling text search
@@ -56,20 +56,64 @@ const advancedSearch = async (req, res) => {
             mongoQuery.publishedAt = dateRange;
         }
         const total = await Video_1.default.countDocuments(mongoQuery);
-        let sort = { publishedAt: -1 };
+        let sortOptions = { publishedAt: -1 };
+        // If custom sorting is requested
+        if (sort) {
+            sortOptions = {};
+            let isPublishedAtPresent = false;
+            const sortFields = sort.split(',').map(field => field.trim());
+            let orderValues = [];
+            if (order) {
+                orderValues = order.split(',').map(o => o.trim());
+            }
+            sortFields.forEach((field, index) => {
+                const sortOrder = orderValues[index] ? (orderValues[index] === 'asc' ? 1 : -1) : -1;
+                sortOptions[field] = sortOrder;
+                if (field === 'publishedAt') {
+                    isPublishedAtPresent = true;
+                }
+            });
+            if (!isPublishedAtPresent) {
+                sortOptions.publishedAt = -1;
+            }
+        }
         if (search && partial !== 'true') {
-            sort = { score: { $meta: 'textScore' }, publishedAt: -1 };
+            sortOptions = {
+                score: { $meta: 'textScore' },
+                ...sortOptions
+            };
         }
         let videosQuery = Video_1.default.find(mongoQuery);
         if (search && partial !== 'true') {
             videosQuery = videosQuery.select({ score: { $meta: 'textScore' } });
         }
         const videos = await videosQuery
-            .sort(sort)
+            .sort(sortOptions)
             .skip(skip)
             .limit(limit)
             .select('-__v');
         const totalPages = Math.ceil(total / limit);
+        let sortInfo = [];
+        if (sort) {
+            let isPublishedAtPresent = false;
+            const sortFields = sort.split(',').map(field => field.trim());
+            const orderValues = order ? order.split(',').map(o => o.trim()) : [];
+            sortInfo = sortFields.map((field, index) => {
+                if (field === 'publishedAt') {
+                    isPublishedAtPresent = true;
+                }
+                return {
+                    field,
+                    order: orderValues[index] || 'asc'
+                };
+            });
+            if (!isPublishedAtPresent) {
+                sortInfo.push({ field: 'publishedAt', order: 'desc' });
+            }
+        }
+        else {
+            sortInfo = [{ field: 'publishedAt', order: 'desc' }];
+        }
         res.json({
             success: true,
             count: videos.length,
@@ -84,6 +128,7 @@ const advancedSearch = async (req, res) => {
                     end: endDate || null
                 } : null
             },
+            sort: sortInfo,
             pagination: {
                 currentPage: page,
                 totalPages,
