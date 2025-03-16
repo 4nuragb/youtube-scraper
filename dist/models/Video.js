@@ -35,9 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const VideoSchema = new mongoose_1.Schema({
-    videoId: { type: String, required: true, unique: true, trim: true },
+    videoId: { type: String, required: true, unique: true, trim: true, index: true },
     title: { type: String, required: true, index: true, trim: true },
-    description: { type: String, required: true, index: true },
+    description: { type: String, required: true },
     publishedAt: { type: Date, required: true, index: true },
     thumbnails: {
         default: {
@@ -66,11 +66,13 @@ const VideoSchema = new mongoose_1.Schema({
             height: Number
         }
     },
-    channelTitle: { type: String, required: true, trim: true },
+    channelTitle: { type: String, required: true, trim: true, index: true },
     channelId: { type: String, required: true, trim: true, index: true },
     tags: [String],
-    viewCount: Number
+    viewCount: Number,
+    likeCount: Number
 }, { timestamps: true });
+VideoSchema.index({ tags: 1 });
 VideoSchema.index({
     title: 'text',
     description: 'text'
@@ -81,6 +83,7 @@ VideoSchema.index({
     },
     name: "title_description_text_index"
 });
+VideoSchema.index({ channelId: 1, publishedAt: -1 });
 VideoSchema.pre('save', function (next) {
     if (this.description === '')
         this.description = 'No description available';
