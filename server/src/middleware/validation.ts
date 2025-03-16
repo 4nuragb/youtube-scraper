@@ -5,7 +5,7 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
     const errors = validationResult(req);
     if( !errors.isEmpty()) {
         return res.status(400).json({
-            errors: errors.array().map(error => ({
+            errors: errors.array().map((error: any) => ({
                 location: error.location,
                 path: error.path,
                 msg: error.msg
@@ -63,9 +63,9 @@ export const advancedSearchValidation = [
         .optional()
         .custom((value) => {
             if( value) {
-                const sortFields = value.split(',').map(field => field.trim());
+                const sortFields = value.split(',').map((field: string) => field.trim());
                 const validFields = ['publishedAt', 'title', 'description', 'channelTitle', 'channelId', 'viewCount', 'likeCount'];
-                if( sortFields.some(field => !validFields.includes(field))) {
+                if( sortFields.some((field: string) => !validFields.includes(field))) {
                     throw new Error('Sort fields must be one of: publishedAt, title, description, channelTitle, channelId, viewCount, likeCount');
                 }
                 return true;
@@ -76,7 +76,7 @@ export const advancedSearchValidation = [
         .optional()
         .custom((value) => {
             if( value) {
-                const orders = value.split(',').map(order => order.trim());
+                const orders = value.split(',').map((order: string) => order.trim());
                 if( orders.some((order: string) => !['asc', 'desc'].includes(order))) {
                     throw new Error('Sort order value must be either "asc" or "desc"');
                 }
