@@ -15,7 +15,7 @@ const fetchYoutubeVideos = async () => {
     logger.info(`Starting YouTube video fetch for query: "${searchQuery}`);
     try {
         const now = new Date();
-        const tenSecondsAgo = new Date(now.getTime() - 60 * 1000);
+        const tenSecondsAgo = new Date(now.getTime() - (Number(process.env.YOUTUBE_FETCH_INTERVAL) || 10) * 1000);
         const publishedAfter = tenSecondsAgo.toISOString();
         const latestVideo = await Video_1.default.findOne().sort({ publishedAt: -1 });
         let effectivePublishedAfter = publishedAfter;
