@@ -1,5 +1,6 @@
 import { Router} from 'express';
 import {advancedSearch} from "../controllers/advancedSearchController";
+import {advancedSearchValidation} from "../middleware/validation";
 
 const router = Router();
 
@@ -16,6 +17,6 @@ const router = Router();
  * @query page - Page number ( optional, default: 1)
  * @query limit - Results per page ( optional, default: 10)
  */
-router.get('/advanced', advancedSearch)
+router.get('/advanced', advancedSearchValidation as any, advancedSearch);
 
 export default router;
