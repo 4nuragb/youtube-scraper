@@ -15,15 +15,16 @@ export interface IVideo extends Document {
     channelTitle: string;
     channelId: string;
     tags?: string[];
-    viewCount?: number;
+    viewCount: number;
+    likeCount: number;
     createdAt: Date;
     updatedAt: Date;
 }
 
 const VideoSchema: Schema = new Schema({
-    videoId: { type: String, required: true, unique: true, trim: true },
+    videoId: { type: String, required: true, unique: true, trim: true, index: true },
     title: { type: String, required: true, index: true, trim: true },
-    description: { type: String, required: true, index: true },
+    description: { type: String, required: true},
     publishedAt: { type: Date, required: true, index: true },
     thumbnails: {
         default: {
@@ -52,11 +53,14 @@ const VideoSchema: Schema = new Schema({
             height: Number
         }
     },
-    channelTitle: { type: String, required: true, trim: true },
+    channelTitle: { type: String, required: true, trim: true, index: true },
     channelId: { type: String, required: true, trim: true, index: true },
     tags: [String],
-    viewCount: Number
+    viewCount: Number,
+    likeCount: Number
 }, { timestamps: true });
+
+VideoSchema.index({tags: 1});
 
 VideoSchema.index({
     title: 'text',
@@ -68,6 +72,8 @@ VideoSchema.index({
     },
     name: "title_description_text_index"
 });
+
+VideoSchema.index({ channelId: 1, publishedAt: -1});
 
 VideoSchema.pre('save', function(next) {
     if( this.description === '') this.description = 'No description available';

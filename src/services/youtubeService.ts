@@ -28,12 +28,20 @@ interface YouTubeVideoSnippet {
     tags?: string[];
 }
 
+interface YouTubeVideoStatistics {
+    viewCount: number;
+    likeCount: number;
+    favoriteCount: number;
+    commentCount: number;
+}
+
 interface YouTubeVideo {
     id: {
         kind: string;
-        videoId: string;
+        id: string;
     };
     snippet: YouTubeVideoSnippet;
+    statistics: YouTubeVideoStatistics;
 }
 
 interface YouTubeApiResponse {
@@ -53,7 +61,7 @@ export const fetchYoutubeVideos = async (): Promise<void> => {
     logger.info(`Starting YouTube video fetch for query: "${searchQuery}`);
     try {
         const now = new Date();
-        const tenSecondsAgo = new Date(now.getTime() - 10 * 1000);
+        const tenSecondsAgo = new Date(now.getTime() - (Number(process.env.YOUTUBE_FETCH_INTERVAL) || 10) * 1000);
         const publishedAfter = tenSecondsAgo.toISOString();
         const latestVideo = await Video.findOne().sort({ publishedAt: -1});
 
@@ -114,11 +122,21 @@ const fetchFromYouTube = async (query: string, publishedAfter: string): Promise<
         };
 
         logger.debug('Sending request to Youtube API');
-        const response = await axios.get<YouTubeApiResponse>(url, { params});
+        const searchResponse = await axios.get(url, { params});
+
+        const videoIds = searchResponse?.data?.items.map((item: any) => item?.id?.videoId);
+
+        const videoDetailsResponse = await axios.get<YouTubeApiResponse>('https://www.googleapis.com/youtube/v3/videos', {
+            params: {
+                key: API_KEY,
+                id: videoIds.join(','),
+                part: 'snippet, statistics'
+            }
+        });
 
         apiKeyManager.incrementUsageCount();
 
-        return response.data;
+        return videoDetailsResponse.data;
     } catch( error) {
         if( axios.isAxiosError(error)) {
             if( error.response?.status === 403) {
@@ -152,7 +170,7 @@ const saveVideos = async (videos: YouTubeVideo[]): Promise<number> => {
 
         results.forEach((result, index) => {
             if( result.status === 'rejected') {
-                logger.error(`Failed to save video ${batch[index].id.videoId}:`, result.reason);
+                logger.error(`Failed to save video ${batch[index].id}:`, result.reason);
             }
         });
     }
@@ -162,27 +180,29 @@ const saveVideos = async (videos: YouTubeVideo[]): Promise<number> => {
 
 const saveVideo = async (video: YouTubeVideo): Promise<IVideo> => {
     try {
-        const existingVideo = await Video.findOne({ videoId: video.id.videoId});
+        const existingVideo = await Video.findOne({ videoId: video.id});
         if( existingVideo) {
             return existingVideo;
         }
 
         const newVideo = new Video( {
-            videoId: video.id.videoId,
+            videoId: video.id,
             title: video.snippet.title,
             description: video.snippet.description || 'No description available',
             publishedAt: new Date(video.snippet.publishedAt),
             thumbnails: video.snippet.thumbnails,
             channelTitle: video.snippet.channelTitle,
             channelId: video.snippet.channelId,
-            tags: video.snippet.tags
+            tags: video.snippet?.tags,
+            viewCount: video.statistics.viewCount,
+            likeCount: video.statistics.likeCount
         });
 
         const savedVideo = await newVideo.save();
         logger.debug(`Saved video: ${savedVideo.title}`);
         return savedVideo;
     } catch( error) {
-        logger.error(`Error saving video ${video.id.videoId}:`, error)
+        logger.error(`Error saving video ${video.id}:`, error)
         throw error;
     }
 }

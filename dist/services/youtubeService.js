@@ -15,7 +15,7 @@ const fetchYoutubeVideos = async () => {
     logger.info(`Starting YouTube video fetch for query: "${searchQuery}`);
     try {
         const now = new Date();
-        const tenSecondsAgo = new Date(now.getTime() - 10 * 1000);
+        const tenSecondsAgo = new Date(now.getTime() - 60 * 1000);
         const publishedAfter = tenSecondsAgo.toISOString();
         const latestVideo = await Video_1.default.findOne().sort({ publishedAt: -1 });
         let effectivePublishedAfter = publishedAfter;
@@ -54,7 +54,7 @@ const fetchYoutubeVideos = async () => {
 };
 exports.fetchYoutubeVideos = fetchYoutubeVideos;
 const fetchFromYouTube = async (query, publishedAfter) => {
-    var _a, _b;
+    var _a, _b, _c;
     const API_KEY = apiKeyManager_1.apiKeyManager.getCurrentKey();
     const MAX_RESULTS = 50;
     logger.info(`Fetching videos published after ${publishedAfter}`);
@@ -71,17 +71,25 @@ const fetchFromYouTube = async (query, publishedAfter) => {
             relevanceLanguage: 'en'
         };
         logger.debug('Sending request to Youtube API');
-        const response = await axios_1.default.get(url, { params });
+        const searchResponse = await axios_1.default.get(url, { params });
+        const videoIds = (_a = searchResponse === null || searchResponse === void 0 ? void 0 : searchResponse.data) === null || _a === void 0 ? void 0 : _a.items.map((item) => { var _a; return (_a = item === null || item === void 0 ? void 0 : item.id) === null || _a === void 0 ? void 0 : _a.videoId; });
+        const videoDetailsResponse = await axios_1.default.get('https://www.googleapis.com/youtube/v3/videos', {
+            params: {
+                key: API_KEY,
+                id: videoIds.join(','),
+                part: 'snippet, statistics'
+            }
+        });
         apiKeyManager_1.apiKeyManager.incrementUsageCount();
-        return response.data;
+        return videoDetailsResponse.data;
     }
     catch (error) {
         if (axios_1.default.isAxiosError(error)) {
-            if (((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 403) {
+            if (((_b = error.response) === null || _b === void 0 ? void 0 : _b.status) === 403) {
                 logger.error('YouTube API quota exceeded or authentication error');
                 throw error;
             }
-            else if (((_b = error.response) === null || _b === void 0 ? void 0 : _b.status) === 400) {
+            else if (((_c = error.response) === null || _c === void 0 ? void 0 : _c.status) === 400) {
                 logger.error('Bad request to YouTube API:', error.response.data);
                 throw error;
             }
@@ -103,34 +111,37 @@ const saveVideos = async (videos) => {
         savedCount += results.filter(result => result.status === 'fulfilled').length;
         results.forEach((result, index) => {
             if (result.status === 'rejected') {
-                logger.error(`Failed to save video ${batch[index].id.videoId}:`, result.reason);
+                logger.error(`Failed to save video ${batch[index].id}:`, result.reason);
             }
         });
     }
     return savedCount;
 };
 const saveVideo = async (video) => {
+    var _a;
     try {
-        const existingVideo = await Video_1.default.findOne({ videoId: video.id.videoId });
+        const existingVideo = await Video_1.default.findOne({ videoId: video.id });
         if (existingVideo) {
             return existingVideo;
         }
         const newVideo = new Video_1.default({
-            videoId: video.id.videoId,
+            videoId: video.id,
             title: video.snippet.title,
             description: video.snippet.description || 'No description available',
             publishedAt: new Date(video.snippet.publishedAt),
             thumbnails: video.snippet.thumbnails,
             channelTitle: video.snippet.channelTitle,
             channelId: video.snippet.channelId,
-            tags: video.snippet.tags
+            tags: (_a = video.snippet) === null || _a === void 0 ? void 0 : _a.tags,
+            viewCount: video.statistics.viewCount,
+            likeCount: video.statistics.likeCount
         });
         const savedVideo = await newVideo.save();
         logger.debug(`Saved video: ${savedVideo.title}`);
         return savedVideo;
     }
     catch (error) {
-        logger.error(`Error saving video ${video.id.videoId}:`, error);
+        logger.error(`Error saving video ${video.id}:`, error);
         throw error;
     }
 };
