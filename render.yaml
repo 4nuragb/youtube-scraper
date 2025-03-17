@@ -1,30 +1,18 @@
 services:
-  # Backend Service (Node.js)
   - type: web
-    name: server
+    name: backend
     env: node
-    plan: free
-    root: server
-    buildCommand: npm install
-    startCommand: npm run start
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm run dev
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
-      - key: MONGODB_URI
-        fromDatabase:
-          name: mongodb-database
-          property: connectionString
 
-  # Frontend Service (React)
   - type: web
-    name: client
+    name: frontend
     env: node
-    plan: free
-    root: client
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd client && npm install && npm build
+    startCommand: cd client && npm start
 
 # MongoDB Database
 databases:
