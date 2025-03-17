@@ -4,7 +4,6 @@ services:
     name: backend-service
     env: node
     plan: free
-    region: oregon
     buildCommand: npm install
     startCommand: npm run start
     envVars:
@@ -24,12 +23,6 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npx serve -s build
-    # Or if using a different start command, replace with your specific command
-    publishDir: build
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
 
 # MongoDB Database
 databases:
@@ -39,8 +32,4 @@ databases:
       - source: 0.0.0.0/0
         description: allow all connections from render services
 
-# Deployment Notes:
-# 1. Changed "static" type to "web" for frontend service
-# 2. Added npx serve to serve the built React app
-# 3. Ensure your frontend has a build script that generates a 'build' directory
-# 4. You may need to adjust the startCommand based on your specific project setup
+# Note: Removed unsupported fields like publishDir and routes
