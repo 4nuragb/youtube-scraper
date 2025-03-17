@@ -1,9 +1,10 @@
 services:
   # Backend Service (Node.js)
   - type: web
-    name: backend-service
+    name: server
     env: node
     plan: free
+    root: server
     buildCommand: npm install
     startCommand: npm run start
     envVars:
@@ -18,11 +19,12 @@ services:
 
   # Frontend Service (React)
   - type: web
-    name: frontend-service
+    name: client
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npx serve -s build
+    root: client
+    buildCommand: npm install
+    startCommand: npm start
 
 # MongoDB Database
 databases:
