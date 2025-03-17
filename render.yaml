@@ -16,15 +16,15 @@ services:
         fromDatabase:
           name: mongodb-database
           property: connectionString
-      # Add any other environment variables your backend needs
-      # - key: JWT_SECRET
-      #   generateValue: true
 
   # Frontend Service (React)
-  - type: static
+  - type: web
     name: frontend-service
-    env: static
+    env: node
+    plan: free
     buildCommand: npm install && npm run build
+    startCommand: npx serve -s build
+    # Or if using a different start command, replace with your specific command
     publishDir: build
     routes:
       - type: rewrite
@@ -40,9 +40,7 @@ databases:
         description: allow all connections from render services
 
 # Deployment Notes:
-# 1. Ensure your package.json scripts match the buildCommand and startCommand
-# 2. Configure CORS in your backend to allow frontend requests
-# 3. Set up environment variables in Render dashboard for sensitive information
-# 4. Adjust regions, plans, and service names as needed
-# 5. For the frontend, make sure your React app's build script generates a 'build' directory
-# 6. Use the MONGODB_URI environment variable in your Node.js backend to connect to the database
+# 1. Changed "static" type to "web" for frontend service
+# 2. Added npx serve to serve the built React app
+# 3. Ensure your frontend has a build script that generates a 'build' directory
+# 4. You may need to adjust the startCommand based on your specific project setup
