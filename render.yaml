@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: backend
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm run dev
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: frontend
+    env: node
+    buildCommand: cd client && npm install && npm build
+    startCommand: cd client && npm start
+
+# MongoDB Database
+databases:
+  - name: mongodb-database
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all connections from render services
+
+# Note: Removed unsupported fields like publishDir and routes
